@@ -82,19 +82,17 @@ pub fn core_main() -> Option<Vec<String>> {
     }
     #[cfg(any(target_os = "linux", target_os = "windows"))]
     if args.is_empty() {
-        #[cfg(target_os = "linux")]
-        let should_check_start_tray = crate::check_process("--server", false);
-        // We can use `crate::check_process("--server", false)` on Windows.
-        // Because `--server` process is the System user's process. We can't get the arguments in `check_process()`.
-        // We can assume that self service running means the server is also running on Windows.
-        #[cfg(target_os = "windows")]
-        let should_check_start_tray = crate::platform::is_self_service_running()
-            && crate::platform::is_cur_exe_the_installed();
-        if should_check_start_tray && !crate::check_process("--tray", true) {
-            #[cfg(target_os = "linux")]
-            hbb_common::allow_err!(crate::platform::check_autostart_config());
-            hbb_common::allow_err!(crate::run_me(vec!["--tray"]));
-        }
+        // ===== 已禁用：自动启动托盘进程 =====
+        // #[cfg(target_os = "linux")]
+        // let should_check_start_tray = crate::check_process("--server", false);
+        // #[cfg(target_os = "windows")]
+        // let should_check_start_tray = crate::platform::is_self_service_running()
+        //     && crate::platform::is_cur_exe_the_installed();
+        // if should_check_start_tray && !crate::check_process("--tray", true) {
+        //     #[cfg(target_os = "linux")]
+        //     hbb_common::allow_err!(crate::platform::check_autostart_config());
+        //     hbb_common::allow_err!(crate::run_me(vec!["--tray"]));
+        // }
     }
     #[cfg(not(debug_assertions))]
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
@@ -378,9 +376,10 @@ pub fn core_main() -> Option<Vec<String>> {
                 return None;
             }
         } else if args[0] == "--tray" {
-            if !crate::check_process("--tray", true) {
-                crate::tray::start_tray();
-            }
+            // ===== 已禁用：启动托盘 =====
+            // if !crate::check_process("--tray", true) {
+            //     crate::tray::start_tray();
+            // }
             return None;
         } else if args[0] == "--install-service" {
             log::info!("start --install-service");
@@ -884,76 +883,4 @@ fn is_user_main_ipc_scope_cli_command(args: &[String]) -> bool {
             | Some("--config")
             | Some("--option")
             | Some("--assign")
-            | Some("--deploy")
-    )
-}
-
-#[inline]
-fn is_cli_setting_change_disabled() -> bool {
-    let option = keys::OPTION_ALLOW_COMMAND_LINE_SETTINGS_WHEN_SETTINGS_DISABLED;
-    let allow_command_line_settings =
-        config::option2bool(option, &crate::get_builtin_option(option));
-    config::is_disable_settings() && !allow_command_line_settings
-}
-
-#[cfg(windows)]
-fn parse_silent_install_args(args: &[String]) -> (Option<bool>, bool) {
-    let mut printer_override = None;
-    let mut debug = false;
-
-    for arg in args.iter().skip(1) {
-        match arg.as_str() {
-            "printer=1" => printer_override = Some(true),
-            "printer=0" => printer_override = Some(false),
-            "debug" => debug = true,
-            _ => {}
-        }
-    }
-
-    (printer_override, debug)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn args(values: &[&str]) -> Vec<String> {
-        values.iter().map(|value| value.to_string()).collect()
-    }
-
-    #[test]
-    fn user_main_ipc_scope_cli_command_matches_management_commands_only() {
-        for command in [
-            "--password",
-            "--set-unlock-pin",
-            "--get-id",
-            "--set-id",
-            "--config",
-            "--option",
-            "--assign",
-            "--deploy",
-        ] {
-            assert!(is_user_main_ipc_scope_cli_command(&args(&[command])));
-        }
-
-        for command in [
-            "--service",
-            "--server",
-            "--tray",
-            "--cm",
-            "--check-hwcodec-config",
-            "--connect",
-        ] {
-            assert!(!is_user_main_ipc_scope_cli_command(&args(&[command])));
-        }
-    }
-}
-
-/// Check if the executable is a Quick Support version.
-/// Note: This function must be kept in sync with `libs/portable/src/main.rs`.
-#[cfg(windows)]
-#[inline]
-fn is_quick_support_exe(exe: &str) -> bool {
-    let exe = exe.to_lowercase();
-    exe.contains("-qs-") || exe.contains("-qs.exe") || exe.contains("_qs.exe")
-}
+            | Some("
