@@ -1699,14 +1699,8 @@ if exist \"{tmp_path}\\{app_name} Tray.lnk\" del /f /q \"{tmp_path}\\{app_name} 
         Config::set_option("api-server".into(), lic.api);
     }
 
-    let tray_shortcuts = if config::is_outgoing_only() {
-        "".to_owned()
-    } else {
-        format!("
-{tray_shortcut_commands}
-copy /Y \"{tmp_path}\\{app_name} Tray.lnk\" \"%PROGRAMDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\\"
-")
-    };
+        // === 已禁用：安装时不创建托盘自启动快捷方式 ===
+    let tray_shortcuts = "".to_owned();
 
     let install_remote_printer = if install_printer {
         // No need to use `|| true` here.
@@ -3321,15 +3315,14 @@ fn get_install_service_commands(path: &str, exe: &str) -> ResultType<String> {
     if let Some(icon) = shortcut_icon_location.as_deref() {
         validate_install_value(icon)?;
     }
-    let tray_shortcut_commands =
-        embedded_tray_shortcut_commands(&app_name, exe, shortcut_icon_location.as_deref())?;
+        // === 已禁用：安装服务时不创建托盘快捷方式 ===
+    let tray_shortcut_commands = "".to_owned();
+    let _ = tray_shortcut_commands; // 避免未使用变量警告
     let filter = format!(" /FI \"PID ne {}\"", get_current_pid());
     Ok(format!(
         "
 chcp 65001
 taskkill /F /IM {app_name}.exe{filter}
-{tray_shortcut_commands}
-copy /Y \"%RUSTDESK_OUTPUT_DIR%\\{app_name} Tray.lnk\" \"%PROGRAMDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\\"
 {import_config}
 {create_service}
     ",
@@ -3964,9 +3957,10 @@ fn run_after_run_cmds(silent: bool) {
             .creation_flags(winapi::um::winbase::CREATE_NO_WINDOW)
             .spawn());
     }
-    if Config::get_option("stop-service") != "Y" {
-        allow_err!(std::process::Command::new(&exe).arg("--tray").spawn());
-    }
+        // === 已禁用：不再启动托盘进程 ===
+    // if Config::get_option("stop-service") != "Y" {
+    //     allow_err!(std::process::Command::new(&exe).arg("--tray").spawn());
+    // }
     std::thread::sleep(std::time::Duration::from_millis(300));
 }
 
