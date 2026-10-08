@@ -886,3 +886,37 @@ fn is_user_main_ipc_scope_cli_command(args: &[String]) -> bool {
             | Some("--deploy")
     )
 }
+
+
+
+#[inline]
+fn is_cli_setting_change_disabled() -> bool {
+    let option = keys::OPTION_ALLOW_COMMAND_LINE_SETTINGS_WHEN_SETTINGS_DISABLED;
+    let allow_command_line_settings =
+        config::option2bool(option, &crate::get_builtin_option(option));
+    config::is_disable_settings() && !allow_command_line_settings
+}
+
+#[cfg(windows)]
+fn parse_silent_install_args(args: &[String]) -> (Option<bool>, bool) {
+    let mut printer_override = None;
+    let mut debug = false;
+
+    for arg in args.iter().skip(1) {
+        match arg.as_str() {
+            "printer=1" => printer_override = Some(true),
+            "printer=0" => printer_override = Some(false),
+            "debug" => debug = true,
+            _ => {}
+        }
+    }
+
+    (printer_override, debug)
+}
+
+#[cfg(windows)]
+#[inline]
+fn is_quick_support_exe(exe: &str) -> bool {
+    let exe = exe.to_lowercase();
+    exe.contains("-qs-") || exe.contains("-qs.exe") || exe.contains("_qs.exe")
+}
